@@ -28,7 +28,11 @@ regd_users.post("/login", (req,res) => {
     return res.status(401).json({ message: "Invalid password" });
   }
   const accessToken = jwt.sign({ username }, "fingerprint_customer", { expiresIn: '1h' });
-  req.session.token = accessToken;
+ 
+
+  req.session.authorization = {
+  token: accessToken
+};
   return res.status(200).json({ message: "Login successful", token: accessToken });
 });
 
@@ -38,28 +42,40 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
   const review = req.query.review;
   const username = req.user.username; // From JWT
   if (!review) {
-    return res.status(400).json({ message: "Review is required" });
+    return res.status(400).json({ message: "Please add your review" });
   }
-  if (!books[isbn]) {
+  const book = Object.values(books).find(book => book.isbn === isbn);
+
+  if (!book) {
     return res.status(404).json({ message: "Book not found" });
   }
-  books[isbn].reviews[username] = review;
-  return res.status(200).json({ message: "Review added/modified successfully" });
+
+  if (!book.reviews) {
+    book.reviews = {};
+  }
+
+  const action = book.reviews[username] ? "modified" : "added";
+  return res.status(200).json({ message: `Review ${action} successfully.` });
 });
 
 regd_users.delete("/auth/review/:isbn", (req, res) => {
   const isbn = req.params.isbn;
-  const username = req.user.username; // From JWT
-  if (!books[isbn]) {
+  const username = req.user.username;
+
+  const book = Object.values(books).find(book => book.isbn === isbn);
+
+  if (!book) {
     return res.status(404).json({ message: "Book not found" });
   }
-  if (books[isbn].reviews[username]) {
-    delete books[isbn].reviews[username];
+
+  if (book.reviews && book.reviews[username]) {
+    delete book.reviews[username];
     return res.status(200).json({ message: "Review deleted successfully" });
   } else {
     return res.status(404).json({ message: "Review not found" });
   }
 });
+
 
 module.exports.authenticated = regd_users;
 module.exports.isValid = isValid;

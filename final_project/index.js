@@ -13,17 +13,13 @@ app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUni
 app.use("/customer/auth/*", function auth(req,res,next){
     
     if(req.session.authorization){
-        const token = req.session.authorization['accessToken'];
+        const token = req.session.authorization.token;
         if (!token) {
             return res.status(403).json({ message: "User not logged in" });
         }
-        jwt.verify(token, "access", (err, user) => {
-            if (err) {
-                return res.status(403).json({ message: "Invalid token" });
-            }
-            req.user = user;
+         const loginuser = jwt.verify(token, "fingerprint_customer");
+            req.user = loginuser;
             next();
-        });
     }
     else {
         return res.status(403).json({ message: "User not logged in" });
